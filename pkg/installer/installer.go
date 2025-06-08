@@ -6,16 +6,20 @@ import (
 
 	"github.com/moolen/flux-poc/pkg/installer/config"
 	"github.com/moolen/flux-poc/pkg/installer/config/awsmeta"
+	"github.com/moolen/flux-poc/pkg/installer/config/kubemeta"
 	"github.com/moolen/flux-poc/pkg/installer/flux"
+	"k8s.io/client-go/kubernetes"
 )
 
 type Installer struct {
-	flux    *flux.Flux
-	context InstallerContext
+	kubeClient *kubernetes.Clientset
+	flux       *flux.Flux
+	context    InstallerContext
 }
 
 type InstallerContext struct {
-	AWSMeta *awsmeta.Metadata
+	AWSMeta  *awsmeta.Metadata
+	KubeMeta *kubemeta.Metadata
 }
 
 func New() *Installer {
@@ -27,9 +31,20 @@ func New() *Installer {
 
 func (i *Installer) Prepare() error {
 	var err error
+
+	cl, err := getKubeClient()
+	if err != nil {
+		return fmt.Errorf("failed to get Kubernetes client: %w", err)
+	}
+	i.kubeClient = cl
+
 	i.context.AWSMeta, err = awsmeta.GetAWSMetadata()
 	if err != nil {
 		return fmt.Errorf("failed to get AWS metadata: %w", err)
+	}
+	i.context.KubeMeta, err = kubemeta.Load(context.Background())
+	if err != nil {
+		return fmt.Errorf("failed to load Kubernetes metadata: %w", err)
 	}
 	return nil
 }
