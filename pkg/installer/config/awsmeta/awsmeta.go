@@ -41,8 +41,8 @@ func (m *Metadata) ToMap() map[string]string {
 	}
 }
 
-// GetAWSMetadata returns AWS account ID, region, and EKS cluster name inferred from environment and STS.
-func GetAWSMetadata() (*Metadata, error) {
+// Load returns AWS account ID, region, and EKS cluster name inferred from environment and STS.
+func Load() (*Metadata, error) {
 	// Load AWS config with default credential chain and region resolution
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 	defer cancel()

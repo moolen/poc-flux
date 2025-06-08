@@ -1,10 +1,6 @@
 package installer
 
 import (
-	"context"
-	"fmt"
-
-	"github.com/moolen/flux-poc/pkg/installer/config"
 	"github.com/moolen/flux-poc/pkg/installer/config/awsmeta"
 	"github.com/moolen/flux-poc/pkg/installer/config/kubemeta"
 	"github.com/moolen/flux-poc/pkg/installer/flux"
@@ -29,57 +25,7 @@ func New() *Installer {
 	}
 }
 
-func (i *Installer) Prepare() error {
-	var err error
-
-	cl, err := getKubeClient()
-	if err != nil {
-		return fmt.Errorf("failed to get Kubernetes client: %w", err)
-	}
-	i.kubeClient = cl
-
-	i.context.AWSMeta, err = awsmeta.GetAWSMetadata()
-	if err != nil {
-		return fmt.Errorf("failed to get AWS metadata: %w", err)
-	}
-	i.context.KubeMeta, err = kubemeta.Load(context.Background())
-	if err != nil {
-		return fmt.Errorf("failed to load Kubernetes metadata: %w", err)
-	}
-	return nil
-}
-
 func (i *Installer) WithCACert(secretName string) *Installer {
 	i.flux.WithCACert(secretName)
 	return i
-}
-
-func (i *Installer) buildManifests() ([]byte, error) {
-	fluxManifests, err := i.flux.Build()
-	if err != nil {
-		return nil, err
-	}
-	configManifests, err := config.Render()
-	if err != nil {
-		return nil, err
-	}
-	return mergeManifests(fluxManifests, configManifests), nil
-}
-
-func (i *Installer) ApplyManifests() error {
-	manifests, err := i.buildManifests()
-	if err != nil {
-		return fmt.Errorf("failed to build manifests: %w", err)
-	}
-	fmt.Printf("%s", string(manifests))
-	return applyYAMLManifests(context.TODO(), manifests)
-}
-
-func mergeManifests(manifests ...[]byte) []byte {
-	var merged []byte
-	for _, manifest := range manifests {
-		merged = append(merged, manifest...)
-		merged = append(merged, []byte("\n---\n")...)
-	}
-	return merged
 }

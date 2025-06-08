@@ -9,6 +9,12 @@
 
 After flux is installed everything* is delegated to a gitops repository.
 
+TODO:
+
+- [ ] make CRD for installation and wire up the config options
+- [ ] provision secrets in vault where applicable
+
+## Installation Flow
 
 ```
 ┌─────────────────────┐
@@ -16,9 +22,10 @@ After flux is installed everything* is delegated to a gitops repository.
 └─────────────────────┘
         │ Prepare()
         ▼
-┌────────────────────────────┐
-│ awsmeta.GetAWSMetadata()   │
-└────────────────────────────┘
+┌───────────────────┐
+│ awsmeta.Load()    │
+│ kubemeta.Load()   │
+└───────────────────┘
         │ CheckPrerequisites()
         ▼
 ┌──────────────────────────┐

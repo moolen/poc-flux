@@ -41,10 +41,15 @@ path "secret/*" {
 	}); err != nil {
 		return fmt.Errorf("unable to reconcile roles: %w", err)
 	}
+
+	if err = vaultMgt.ReconcileSecretEngine(context.Background()); err != nil {
+		return fmt.Errorf("unable to reconcile secret engine: %w", err)
+	}
+
 	if err := vaultMgt.Reconcile(context.Background(), vault.KubernetesAuthConfig{
 		MountPath:     "kubernetes",
 		KubeHost:      i.context.KubeMeta.Host,
-		KubeCA:        i.context.KubeMeta.CACertBase64,
+		KubeCA:        i.context.KubeMeta.CACertPEM,
 		TokenReviewer: "vault-token-reviewer",
 		Roles:         getKubernetesVaultRoles(),
 	}); err != nil {

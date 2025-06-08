@@ -2,7 +2,6 @@ package kubemeta
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
 	"os"
 
@@ -15,7 +14,7 @@ import (
 
 type Metadata struct {
 	KubeVersion      string
-	CACertBase64     string
+	CACertPEM        string
 	Host             string
 	ClusterDNSDomain string
 }
@@ -48,11 +47,17 @@ func Load(ctx context.Context) (*Metadata, error) {
 		}
 	}
 
-	caData := base64.StdEncoding.EncodeToString(restConfig.CAData)
+	caConfigMap, err := clientset.CoreV1().ConfigMaps("default").Get(context.Background(), "kube-root-ca.crt", metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get kube-root-ca.crt configmap: %w", err)
+	}
+	if caConfigMap.Data == nil || caConfigMap.Data["ca.crt"] == "" {
+		return nil, fmt.Errorf("kube-root-ca.crt configmap is missing or empty")
+	}
 
 	return &Metadata{
 		KubeVersion:      serverVersion.GitVersion,
-		CACertBase64:     caData,
+		CACertPEM:        caConfigMap.Data["ca.crt"],
 		Host:             restConfig.Host,
 		ClusterDNSDomain: dnsDomain,
 	}, nil

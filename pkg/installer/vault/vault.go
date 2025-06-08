@@ -74,7 +74,7 @@ func (m *Manager) Reconcile(ctx context.Context, cfg KubernetesAuthConfig) error
 		"kubernetes_ca_cert": cfg.KubeCA,
 		"token_reviewer_jwt": cfg.TokenReviewer,
 	}
-	if !equalMaps(input, existing.Data) {
+	if existing == nil || !equalMaps(input, existing.Data) {
 		_, err := m.client.Logical().Write(confPath, input)
 		if err != nil {
 			return fmt.Errorf("failed to write kubernetes config: %w", err)
@@ -95,7 +95,7 @@ func (m *Manager) Reconcile(ctx context.Context, cfg KubernetesAuthConfig) error
 		if err != nil && !isNotFound(err) {
 			return fmt.Errorf("failed to read existing role: %w", err)
 		}
-		if !equalMaps(desired, existing.Data) {
+		if existing == nil || !equalMaps(desired, existing.Data) {
 			_, err := m.client.Logical().Write(rolePath, desired)
 			if err != nil {
 				return fmt.Errorf("failed to write role %s: %w", role.Name, err)
@@ -117,6 +117,41 @@ func (m *Manager) ReconcilePolicies(ctx context.Context, policies []VaultPolicy)
 				return fmt.Errorf("failed to write policy %s: %w", policy.Name, err)
 			}
 		}
+	}
+	return nil
+}
+
+func (m *Manager) ReconcileSecretEngine(ctx context.Context) error {
+	mountPath := "secrets/"
+
+	mounts, err := m.client.Sys().ListMounts()
+	if err != nil {
+		return fmt.Errorf("failed to list mounts: %w", err)
+	}
+
+	// Check if already mounted with kv v2
+	if mount, ok := mounts[mountPath]; ok {
+		if mount.Type == "kv" && mount.Options["version"] == "2" {
+			return nil // already configured correctly
+		}
+		// If wrong version or type, disable it before re-mounting
+		err := m.client.Sys().Unmount(mountPath)
+		if err != nil {
+			return fmt.Errorf("failed to unmount existing secret engine: %w", err)
+		}
+	}
+
+	// Mount KV v2
+	opts := &vault.MountInput{
+		Type: "kv",
+		Options: map[string]string{
+			"version": "2",
+		},
+		Description: "KV v2 secrets engine for cluster",
+	}
+
+	if err := m.client.Sys().Mount(mountPath, opts); err != nil {
+		return fmt.Errorf("failed to mount kv v2 secret engine: %w", err)
 	}
 	return nil
 }

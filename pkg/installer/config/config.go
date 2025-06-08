@@ -16,7 +16,7 @@ import (
 func Render() ([]byte, error) {
 	config := make(map[string]string)
 	config["hello"] = "world"
-	awsMeta, err := awsmeta.GetAWSMetadata()
+	awsMeta, err := awsmeta.Load()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get AWS metadata: %w", err)
 	}
