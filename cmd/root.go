@@ -19,20 +19,20 @@ var rootCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 
 		logrus.SetLevel(logrus.DebugLevel)
-		f := installer.New()
+		installMgr := installer.New()
 
-		if err := f.Prepare(); err != nil {
+		if err := installMgr.Prepare(); err != nil {
 			logrus.Fatalf("Error preparing installer: %v", err)
 		}
 
 		logrus.Debugf("Checking prerequisites...")
-		if err := f.CheckPrerequisites(); err != nil {
+		if err := installMgr.CheckPrerequisites(); err != nil {
 			logrus.Warnf("Prerequisite checks failed: %v", err)
 		}
 
 		for {
 			logrus.Debugf("Reconciling cluster infrastructure...")
-			retry, err := f.ReconcileInfrastructure()
+			retry, err := installMgr.ReconcileInfrastructure()
 			if err != nil && !retry {
 				logrus.Fatalf("Error reconciling cluster: %v", err)
 			}
@@ -42,9 +42,13 @@ var rootCmd = &cobra.Command{
 			<-time.After(time.Second * 5)
 		}
 
-		f.WithCACert("foobar")
-		if err := f.ApplyManifests(); err != nil {
+		installMgr.WithCACert("foobar")
+		if err := installMgr.ApplyBootstrapManifests(); err != nil {
 			logrus.Fatalf("Error applying manifests: %v", err)
+		}
+
+		if err := installMgr.ReconcilePlatform(); err != nil {
+			logrus.Fatalf("Error reconciling platform: %v", err)
 		}
 	},
 }

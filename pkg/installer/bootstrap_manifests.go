@@ -5,18 +5,19 @@ import (
 	"fmt"
 
 	"github.com/moolen/flux-poc/pkg/installer/config"
+	"github.com/moolen/flux-poc/pkg/installer/manifests"
 )
 
 func (i *Installer) buildManifests() ([]byte, error) {
-	fluxManifests, err := i.flux.Build()
+	kustomizeManifests, err := i.kustomizeRender.Render(manifests.FS())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to render kustomize manifests: %w", err)
 	}
 	configManifests, err := config.Render()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to render config manifests: %w", err)
 	}
-	return mergeManifests(fluxManifests, configManifests), nil
+	return mergeManifests(kustomizeManifests, configManifests), nil
 }
 
 func (i *Installer) ApplyBootstrapManifests() error {

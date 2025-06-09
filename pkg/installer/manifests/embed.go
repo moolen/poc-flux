@@ -1,4 +1,4 @@
-package installer
+package manifests
 
 import (
 	"embed"
@@ -8,12 +8,17 @@ import (
 //go:embed manifests/*
 var embeddedFiles embed.FS
 
-var fluxFS fs.FS
+var manifestsFS fs.FS
+
+// FS returns a read-only filesystem containing the contents of /hack/flux-install.
+func FS() fs.FS {
+	return manifestsFS
+}
 
 func init() {
 	var err error
 	// Strip the path prefix so it starts at the root of flux-install
-	fluxFS, err = fs.Sub(embeddedFiles, "manifests")
+	manifestsFS, err = fs.Sub(embeddedFiles, "manifests")
 	if err != nil {
 		panic("failed to create sub FS: " + err.Error())
 	}
